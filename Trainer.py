@@ -10,9 +10,10 @@ import copy
 
 
 class Trainer(object):
-    def __init__(self, model, loss=None, weight=None, vocab_dict=None, vocab_list=None, data_loader=None, batch_size=32, decode_classes_dict=None, decode_classes_list=None,
+    def __init__(self, model, dualmodel, loss=None, weight=None, vocab_dict=None, vocab_list=None, data_loader=None, batch_size=32, decode_classes_dict=None, decode_classes_list=None,
                  cuda_use=True, print_every=10, checkpoint_dir_name=None):
         self.model = model
+        self.dualmodel = dualmodel
         self.vocab_dict = vocab_dict
         self.vocab_list = vocab_list
         self.data_loader = data_loader
@@ -28,7 +29,7 @@ class Trainer(object):
         else:
             self.criterion = loss
 
-    def train(self, model, epoch_num=100, start_epoch=0, valid_every=10):
+    def train(self, model, dualmodel, epoch_num=100, start_epoch=0, valid_every=10):
         train_list = self.data_loader.train_data
         valid_list = self.data_loader.valid_data
         best_valid = 0
@@ -58,8 +59,9 @@ class Trainer(object):
 
                 total_num += len(input)
 
-                loss = model(input, input_len, target, target_len, batch_num_count, self.data_loader.generate_op_index, batch_num_index_list, nums_stack_batch)
-                total_loss += loss
+                loss1 = model(input, input_len, target, target_len, batch_num_count, self.data_loader.generate_op_index, batch_num_index_list, nums_stack_batch)
+                loss2 = dualmodel(target, target_len, input, input_len)
+                total_loss += loss1
 
                 start_step += 1
                 if start_step % self.print_every == 0:

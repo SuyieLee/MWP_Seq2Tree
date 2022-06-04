@@ -6,6 +6,7 @@ from treemodel import EncoderRNN, Prediction, GenerateNode, Merge
 from Seq2Tree import Seq2Tree
 from Trainer import Trainer
 from dataloader import DataLoader
+from dualmodel import Dualmodel
 # from argparse import ArgumentParser
 import torch.nn as nn
 import random
@@ -24,7 +25,7 @@ def getArgs():
     parser.add_argument('--dropout', type=float, dest='dropout', default=0.5)
     parser.add_argument('--layers', type=int, dest='layers', default=2)
     parser.add_argument('--cuda-id', type=str, dest='cuda_id', default='1')
-    parser.add_argument('--cuda_use', type=bool, dest='cuda_use', default=True)
+    parser.add_argument('--cuda_use', type=bool, dest='cuda_use', default=False)
     parser.add_argument('--checkpoint_dir_name', type=str, dest='checkpoint_dir_name', default="0000-0000", help='模型存储名字')
     parser.add_argument('--batch_size', type=int, dest='batch_size', default=64)
     parser.add_argument('--epoch_num', type=int, dest='epoch_num', default=10)
@@ -67,7 +68,7 @@ def step_one_train():
         merge.cuda()
 
     model = Seq2Tree(data_loader, encoder, predict, generate, merge, args.learning_rate, args.weight_decay, args.cuda_use)
-
+    dualmodel = Dualmodel(data_loader, args.batch_size, args.cuda_use)
     if args.cuda_use:
         model = model.cuda()
 
@@ -77,6 +78,7 @@ def step_one_train():
     # pad = data_loader.decode_classes_dict['PAD_token']
     # loss = NLLLoss(weight, pad)
     trainer = Trainer(model,
+                      dualmodel,
                       # loss=loss,
                       weight=weight,
                       vocab_dict=data_loader.vocab_dict,
@@ -96,7 +98,7 @@ def step_one_train():
         lists.sort(key=lambda x: os.path.getmtime(('./model/' + x)))  # 获取最新产生的模型
         file_last = os.path.join('./model/', lists[-1])
         model.load_state_dict(torch.load(file_last))
-    path = trainer.train(model, epoch_num=args.epoch_num, start_epoch=start_epoch, valid_every=args.valid_every)
+    path = trainer.train(model, dualmodel, epoch_num=args.epoch_num, start_epoch=start_epoch, valid_every=args.valid_every)
     print("------------开始测试-------------")
     model.load_state_dict(torch.load(path))
     test_ans_acc = trainer.evaluate(model, data_loader.test_data)

@@ -103,7 +103,7 @@ class Seq2Seq(nn.Module):
             # hidden = torch.cat([hidden[0:hidden.size(0):2], hidden[1:hidden.size(0):2]], 2)
 
         decoder_input = target[0, :]  # decoder 的第一个输入是<sos>
-        for t in range(1, target_len):
+        for t in range(0, target_len):
             output, hidden = self.decoder(decoder_input, hidden)  # hidden = (hidden, cell)
             outputs[t] = output
             teacher_forcing = random.random() < teacher_forcing_ratio
